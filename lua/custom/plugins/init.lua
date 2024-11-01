@@ -27,4 +27,19 @@ return {
       vim.keymap.set('n', ',T', neotest.run.run_last, { desc = '[T]est [N]earest test to your cursor' })
     end,
   },
+  {
+    'maxmx03/solarized.nvim',
+    lazy = false,
+    priority = 1000,
+    ---@type solarized.config
+    opts = {
+      variant = 'winter', -- "spring" | "summer" | "autumn" | "winter" (default)
+    },
+    config = function(_, opts)
+      vim.o.termguicolors = true
+      vim.o.background = 'dark'
+      require('solarized').setup(opts)
+      vim.cmd.colorscheme 'solarized'
+    end,
+  },
 }

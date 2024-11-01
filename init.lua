@@ -84,6 +84,8 @@ I hope you enjoy your Neovim journey,
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
 
+local logger = require 'logger.log'
+
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -105,7 +107,7 @@ vim.opt.number = true
 -- vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
-vim.opt.mouse = 'a'
+-- vim.opt.mouse = 'a'
 
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
@@ -671,9 +673,9 @@ require('lazy').setup({
       -- for you, so that they are available from within Neovim.
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-        'stylua', -- Used to format Lua code
-        'isort',
-        'black',
+        -- 'stylua', -- Used to format Lua code
+        -- 'isort',
+        -- 'black',
         'goimports',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -773,14 +775,81 @@ require('lazy').setup({
       --  into multiple repos for maintenance purposes.
       'hrsh7th/cmp-nvim-lsp',
       'hrsh7th/cmp-path',
+      'hrsh7th/cmp-buffer',
     },
     config = function()
       -- See `:help cmp`
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
+      local has_words_before = function()
+        unpack = unpack or table.unpack
+        local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+        return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match '%s' == nil
+      end
+
+      local default_cmp_sources = {
+        {
+          name = 'lazydev',
+          -- set group index to 0 to skip loading LuaLS completions as lazydev recommends it
+          group_index = 0,
+        },
+        -- { name = 'nvim_lsp' },
+        { name = 'luasnip' },
+        { name = 'path' },
+        {
+          name = 'buffer',
+          option = {
+            get_bufnrs = function()
+              return vim.api.nvim_list_bufs()
+            end,
+          },
+        },
+      }
+
+      local lsp_conf = vim.tbl_deep_extend('force', {}, default_cmp_sources)
+      table.insert(lsp_conf, { name = 'nvim_lsp' })
+      --
+      -- logger.debug(lsp_conf)
+
+      local bufIsBig = function(bufnr)
+        local max_filesize = 100 * 1024 -- 100 KB
+        local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(bufnr))
+        if ok and stats and stats.size > max_filesize then
+          return true
+        else
+          return false
+        end
+      end
+
+      -- dont add super large files into to the buffer source
+      -- this allows us to open json files and such and still have snappy tab
+      -- complete
+      vim.api.nvim_create_autocmd('BufReadPre', {
+        callback = function(t)
+          local sources = default_cmp_sources
+          if not bufIsBig(t.buf) then
+            sources[#sources + 1] = { name = 'treesitter', group_index = 2 }
+          end
+          cmp.setup.buffer {
+            sources = sources,
+          }
+        end,
+      })
+
       luasnip.config.setup {}
 
       cmp.setup {
+        enabled = function()
+          -- https://github.com/hrsh7th/nvim-cmp/wiki/Advanced-techniques#disabling-completion-in-certain-contexts-such-as-comments
+          -- disable completion in comments
+          local context = require 'cmp.config.context'
+          -- keep command mode completion enabled when cursor is in a comment
+          if vim.api.nvim_get_mode().mode == 'c' then
+            return true
+          else
+            return not context.in_treesitter_capture 'comment' and not context.in_syntax_group 'Comment'
+          end
+        end,
         snippet = {
           expand = function(args)
             luasnip.lsp_expand(args.body)
@@ -798,10 +867,6 @@ require('lazy').setup({
           -- Select the [p]revious item
           ['<C-p>'] = cmp.mapping.select_prev_item(),
 
-          -- Scroll the documentation window [b]ack / [f]orward
-          ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-          ['<C-f>'] = cmp.mapping.scroll_docs(4),
-
           -- Accept ([y]es) the completion.
           --  This will auto-import if your LSP supports it.
           --  This will expand snippets if the LSP sent a snippet.
@@ -809,14 +874,17 @@ require('lazy').setup({
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
-          --['<CR>'] = cmp.mapping.confirm { select = true },
-          --['<Tab>'] = cmp.mapping.select_next_item(),
-          --['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
-          -- Manually trigger a completion from nvim-cmp.
+          -- Manually trigger a completion from nvim-cmp with lsp.
           --  Generally you don't need this, because nvim-cmp will display
           --  completions whenever it has completion options available.
-          ['<C-Space>'] = cmp.mapping.complete {},
+          ['<C-Space>'] = cmp.mapping.complete {
+            config = {
+              sources = lsp_conf,
+            },
+          },
 
           -- Think of <c-l> as moving to the right of your snippet expansion.
           --  So if you have a snippet that's like:
@@ -840,16 +908,16 @@ require('lazy').setup({
           -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
           --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
         },
-        sources = {
-          {
-            name = 'lazydev',
-            -- set group index to 0 to skip loading LuaLS completions as lazydev recommends it
-            group_index = 0,
+        sorting = {
+          comparators = {
+            function(...)
+              local cmp_buffer = require 'cmp_buffer'
+              return cmp_buffer:compare_locality(...)
+            end,
+            -- The rest of your comparators...
           },
-          { name = 'nvim_lsp' },
-          { name = 'luasnip' },
-          { name = 'path' },
         },
+        sources = default_cmp_sources,
       }
     end,
   },
