@@ -1,5 +1,4 @@
 --[[
-
 =====================================================================
 ==================== READ THIS BEFORE CONTINUING ====================
 =====================================================================
@@ -800,13 +799,18 @@ require('lazy').setup({
           name = 'buffer',
           option = {
             get_bufnrs = function()
-              return vim.api.nvim_list_bufs()
+              -- logger.info 'getcurrent'
+              -- logger.info(vim.api.nvim_get_current_buf())
+              -- logger.info 'getlist'
+              -- logger.info(vim.api.nvim_list_bufs())
+              return { vim.api.nvim_get_current_buf() }
             end,
           },
         },
       }
 
-      local lsp_conf = vim.tbl_deep_extend('force', {}, default_cmp_sources)
+      -- local lsp_conf = vim.tbl_deep_extend('force', {}, default_cmp_sources)
+      local lsp_conf = vim.tbl_deep_extend('force', {}, {})
       table.insert(lsp_conf, { name = 'nvim_lsp' })
       --
       -- logger.debug(lsp_conf)
@@ -839,7 +843,7 @@ require('lazy').setup({
       luasnip.config.setup {}
 
       cmp.setup {
-        enabled = function()
+        xenabled = function()
           -- https://github.com/hrsh7th/nvim-cmp/wiki/Advanced-techniques#disabling-completion-in-certain-contexts-such-as-comments
           -- disable completion in comments
           local context = require 'cmp.config.context'
