@@ -755,16 +755,24 @@ require('lazy').setup({
           end
           return 'make install_jsregexp'
         end)(),
+        config = function()
+          local snippets_path = vim.fn.stdpath 'config' .. '/lua/snippets'
+          -- logger.info(snippets_path)
+          require('luasnip.loaders.from_vscode').load {
+            paths = { snippets_path },
+            include = { 'go' },
+          }
+        end,
         dependencies = {
           -- `friendly-snippets` contains a variety of premade snippets.
           --    See the README about individual language/framework/plugin snippets:
           --    https://github.com/rafamadriz/friendly-snippets
-          -- {
-          --   'rafamadriz/friendly-snippets',
-          --   config = function()
-          --     require('luasnip.loaders.from_vscode').lazy_load()
-          --   end,
-          -- },
+          {
+            'rafamadriz/friendly-snippets',
+            config = function()
+              require('luasnip.loaders.from_vscode').lazy_load { include = { 'go', 'html' } }
+            end,
+          },
         },
       },
       'saadparwaiz1/cmp_luasnip',
@@ -913,7 +921,7 @@ require('lazy').setup({
           --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
         },
         sorting = {
-          comparators = {
+          xcomparators = {
             function(...)
               local cmp_buffer = require 'cmp_buffer'
               return cmp_buffer:compare_locality(...)

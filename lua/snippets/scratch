@@ -1,0 +1,10 @@
+/*
+func(func(${1:v}) bool) {
+	return func(yield func(${1:v}) bool) {
+
+  }
+}
+
+func(func(${1:v}) bool) {\n\treturn func(yield func(${1:v}) bool) {\n\t\t$0\n\t}\n}
+*/
+
