@@ -735,6 +735,7 @@ require('lazy').setup({
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
         go = { 'goimports' },
+        sql = { 'sql-formatter' },
       },
     },
   },
@@ -977,6 +978,11 @@ require('lazy').setup({
       --  You could remove this setup call if you don't like it,
       --  and try some other statusline plugin
       local statusline = require 'mini.statusline'
+      local filename_hl = { bg = '#181825', fg = '#CDD6F5' }
+      local inactive_hl = { bg = '#404063', fg = '#89B4FB' }
+
+      vim.api.nvim_set_hl(0, 'MiniStatuslineFilename', filename_hl)
+      vim.api.nvim_set_hl(0, 'MiniStatuslineInactive', inactive_hl)
       -- set use_icons to true if you have a Nerd Font
       statusline.setup { use_icons = vim.g.have_nerd_font }
 
