@@ -279,7 +279,7 @@ require('lazy').setup({
   -- after the plugin has been loaded:
   --  config = function() ... end
 
-  { -- Useful plugin to show you pending keybinds.
+  {                     -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
@@ -322,15 +322,15 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
-        { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
+        { '<leader>c', group = '[C]ode',          mode = { 'n', 'x' } },
         { '<leader>d', group = '[D]ocument' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
         { '<leader>w', group = '[W]orkspace' },
         { '<leader>t', group = '[T]oggle' },
-        { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
-        { ',m', group = '[M]ove window', mode = { 'n' } },
-        { ',t', group = '[T]est commands', mode = { 'n' } },
+        { '<leader>h', group = 'Git [H]unk',      mode = { 'n', 'v' } },
+        { ',m',        group = '[M]ove window',   mode = { 'n' } },
+        { ',t',        group = '[T]est commands', mode = { 'n' } },
       },
     },
   },
@@ -364,7 +364,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
       {
         'gmartsenkov/root.nvim',
         lazy = false,
@@ -476,7 +476,7 @@ require('lazy').setup({
       },
     },
   },
-  { 'Bilal2453/luvit-meta', lazy = true },
+  { 'Bilal2453/luvit-meta',     lazy = true },
   {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
@@ -488,7 +488,7 @@ require('lazy').setup({
 
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-      { 'j-hui/fidget.nvim', opts = {} },
+      { 'j-hui/fidget.nvim',       opts = {} },
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
@@ -795,6 +795,28 @@ require('lazy').setup({
         return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match '%s' == nil
       end
 
+      local visible_buffers = function()
+        local wins = vim.api.nvim_list_wins()
+        local bufs = {}
+        for _, win in ipairs(wins) do
+          local buf = vim.api.nvim_win_get_buf(win)
+          bufs[buf] = true -- use a set to avoid duplicates
+        end
+        local result = {}
+        for buf, _ in pairs(bufs) do
+          table.insert(result, buf)
+        end
+        return result
+      end
+
+      local current_buffer = function()
+        -- logger.info 'getcurrent'
+        -- logger.info(vim.api.nvim_get_current_buf())
+        -- logger.info 'getlist'
+        -- logger.info(vim.api.nvim_list_bufs())
+        return { vim.api.nvim_get_current_buf() }
+      end
+
       local default_cmp_sources = {
         {
           name = 'lazydev',
@@ -807,13 +829,7 @@ require('lazy').setup({
         {
           name = 'buffer',
           option = {
-            get_bufnrs = function()
-              -- logger.info 'getcurrent'
-              -- logger.info(vim.api.nvim_get_current_buf())
-              -- logger.info 'getlist'
-              -- logger.info(vim.api.nvim_list_bufs())
-              return { vim.api.nvim_get_current_buf() }
-            end,
+            get_bufnrs = visible_buffers,
           },
         },
       }
