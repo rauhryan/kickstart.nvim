@@ -212,7 +212,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
-vim.api.nvim_create_user_command("FormatDisable", function(args)
+vim.api.nvim_create_user_command('FormatDisable', function(args)
   if args.bang then
     -- FormatDisable! will disable formatting just for this buffer
     vim.b.disable_autoformat = true
@@ -220,14 +220,14 @@ vim.api.nvim_create_user_command("FormatDisable", function(args)
     vim.g.disable_autoformat = true
   end
 end, {
-  desc = "Disable autoformat-on-save",
+  desc = 'Disable autoformat-on-save',
   bang = true,
 })
-vim.api.nvim_create_user_command("FormatEnable", function()
+vim.api.nvim_create_user_command('FormatEnable', function()
   vim.b.disable_autoformat = false
   vim.g.disable_autoformat = false
 end, {
-  desc = "Re-enable autoformat-on-save",
+  desc = 'Re-enable autoformat-on-save',
 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
@@ -297,7 +297,7 @@ require('lazy').setup({
   -- after the plugin has been loaded:
   --  config = function() ... end
 
-  {                     -- Useful plugin to show you pending keybinds.
+  { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
@@ -340,15 +340,15 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
-        { '<leader>c', group = '[C]ode',          mode = { 'n', 'x' } },
+        { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
         { '<leader>d', group = '[D]ocument' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
         { '<leader>w', group = '[W]orkspace' },
         { '<leader>t', group = '[T]oggle' },
-        { '<leader>h', group = 'Git [H]unk',      mode = { 'n', 'v' } },
-        { ',m',        group = '[M]ove window',   mode = { 'n' } },
-        { ',t',        group = '[T]est commands', mode = { 'n' } },
+        { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
+        { ',m', group = '[M]ove window', mode = { 'n' } },
+        { ',t', group = '[T]est commands', mode = { 'n' } },
       },
     },
   },
@@ -382,7 +382,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
       {
         'gmartsenkov/root.nvim',
         lazy = false,
@@ -494,19 +494,19 @@ require('lazy').setup({
       },
     },
   },
-  { 'Bilal2453/luvit-meta',     lazy = true },
+  { 'Bilal2453/luvit-meta', lazy = true },
   {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
     dependencies = {
       -- Automatically install LSPs and related tools to stdpath for Neovim
-      { 'williamboman/mason.nvim', config = true }, -- NOTE: Must be loaded before dependants
-      'williamboman/mason-lspconfig.nvim',
+      { 'mason-org/mason.nvim', opts = {} }, -- NOTE: Must be loaded before dependants
+      'mason-org/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-      { 'j-hui/fidget.nvim',       opts = {} },
+      { 'j-hui/fidget.nvim', opts = {} },
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
@@ -650,8 +650,8 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
+        gopls = {},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -659,7 +659,18 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        ts_ls = {},
+        ts_ls = {
+          root_dir = require('lspconfig').util.root_pattern { 'package.json', 'tsconfig.json' },
+          single_file_support = false,
+          settings = {},
+        },
+
+        denols = {
+          cmd = { 'deno', 'lsp' },
+          root_dir = require('lspconfig').util.root_pattern { 'deno.json', 'deno.jsonc' },
+          single_file_support = false,
+          settings = {},
+        },
         --
 
         lua_ls = {
@@ -684,31 +695,35 @@ require('lazy').setup({
       --    :Mason
       --
       --  You can press `g?` for help in this menu.
-      require('mason').setup()
+      -- require('mason').setup()
 
-      -- You can add other tools here that you want Mason to install
-      -- for you, so that they are available from within Neovim.
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-        -- 'stylua', -- Used to format Lua code
-        -- 'isort',
-        -- 'black',
-        'goimports',
+        'stylua', -- Used to format Lua code
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
-      require('mason-lspconfig').setup {
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
-        },
-      }
+      -- require('mason-lspconfig').setup {
+      --   ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+      --   automatic_installation = false,
+      --   handlers = {
+      --     function(server_name)
+      --       local server = servers[server_name] or {}
+      --       -- This handles overriding only values explicitly passed
+      --       -- by the server configuration above. Useful when disabling
+      --       -- certain features of an LSP (for example, turning off formatting for ts_ls)
+      --       server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+      --       logger.debug('denols' .. ' => filetypes=' .. vim.inspect(servers.denols))
+      --       require('lspconfig')[server_name].setup(server)
+      --     end,
+      --   },
+      -- }
+
+      for name, cfg in pairs(servers) do
+        cfg.capabilities = vim.tbl_deep_extend('force', {}, capabilities, cfg.capabilities or {})
+        -- logger.debug(name .. ' => cfg=' .. vim.inspect(cfg))
+        require('lspconfig')[name].setup(cfg)
+      end
     end,
   },
 
