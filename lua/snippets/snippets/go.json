@@ -1,0 +1,12 @@
+{
+  "iterator declaration": {
+    "prefix": "iter",
+    "body": "func(func(${1:T}) bool) {\n\treturn func(yield func(${1:T}) bool) {\n\t\t$0\n\t}\n}",
+    "description": "Snippet for an iterator signature"
+  },
+  "iterator2 declaration": {
+    "prefix": "iter2",
+    "body": "func(func(${1:K}, ${2:T}) bool) {\n\treturn func(yield func(${1:K}, ${2:T}) bool) {\n\t\t$0\n\t}\n}",
+    "description": "Snippet for an iterator signature"
+  }
+}

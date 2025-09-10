@@ -1,5 +1,4 @@
 --[[
-
 =====================================================================
 ==================== READ THIS BEFORE CONTINUING ====================
 =====================================================================
@@ -84,6 +83,8 @@ I hope you enjoy your Neovim journey,
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
 
+local logger = require 'logger.log'
+
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -91,7 +92,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -105,7 +106,7 @@ vim.o.number = true
 -- vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
-vim.o.mouse = 'a'
+-- vim.o.mouse = 'a'
 
 -- Don't show the mode, since it's already in the status line
 vim.o.showmode = false
@@ -166,6 +167,8 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
+vim.opt.wrap = false
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -194,10 +197,15 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --  Use CTRL+<hjkl> to switch between windows
 --
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', ',h', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+vim.keymap.set('n', ',l', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+vim.keymap.set('n', ',j', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+vim.keymap.set('n', ',k', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+
+vim.keymap.set('n', ',mh', '<C-w>H', { desc = 'Move window to the left window' })
+vim.keymap.set('n', ',ml', '<C-w>L', { desc = 'Move window to the right window' })
+vim.keymap.set('n', ',mj', '<C-w>J', { desc = 'Move window to the lower window' })
+vim.keymap.set('n', ',mk', '<C-w>K', { desc = 'Move window to the upper window' })
 
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
@@ -217,6 +225,24 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function()
     vim.hl.on_yank()
   end,
+})
+
+vim.api.nvim_create_user_command('FormatDisable', function(args)
+  if args.bang then
+    -- FormatDisable! will disable formatting just for this buffer
+    vim.b.disable_autoformat = true
+  else
+    vim.g.disable_autoformat = true
+  end
+end, {
+  desc = 'Disable autoformat-on-save',
+  bang = true,
+})
+vim.api.nvim_create_user_command('FormatEnable', function()
+  vim.b.disable_autoformat = false
+  vim.g.disable_autoformat = false
+end, {
+  desc = 'Re-enable autoformat-on-save',
 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
@@ -347,6 +373,8 @@ require('lazy').setup({
         { '<leader>s', group = '[S]earch' },
         { '<leader>t', group = '[T]oggle' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
+        { ',m', group = '[M]ove window', mode = { 'n' } },
+        { ',t', group = '[T]est commands', mode = { 'n' } },
       },
     },
   },
@@ -380,6 +408,16 @@ require('lazy').setup({
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      {
+        'gmartsenkov/root.nvim',
+        lazy = false,
+        build = 'make',
+        config = function()
+          require('root').setup {
+            patterns = { '.git', 'Gemfile' },
+          }
+        end,
+      },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -424,11 +462,17 @@ require('lazy').setup({
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
 
+      local root = require 'root'
+
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
+      vim.keymap.set('n', '<leader>sf', function()
+        builtin.find_files {
+          cwd = root.find() or vim.fn.expand '%:p:h',
+        }
+      end, { desc = '[S]earch [F]iles' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
@@ -672,8 +716,8 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
+        gopls = {},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -681,7 +725,18 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+        ts_ls = {
+          root_dir = require('lspconfig').util.root_pattern { 'package.json', 'tsconfig.json' },
+          single_file_support = false,
+          settings = {},
+        },
+
+        denols = {
+          cmd = { 'deno', 'lsp' },
+          root_dir = require('lspconfig').util.root_pattern { 'deno.json', 'deno.jsonc' },
+          single_file_support = false,
+          settings = {},
+        },
         --
 
         lua_ls = {
@@ -733,6 +788,27 @@ require('lazy').setup({
           end,
         },
       }
+      -- require('mason-lspconfig').setup {
+      --   ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+      --   automatic_installation = false,
+      --   handlers = {
+      --     function(server_name)
+      --       local server = servers[server_name] or {}
+      --       -- This handles overriding only values explicitly passed
+      --       -- by the server configuration above. Useful when disabling
+      --       -- certain features of an LSP (for example, turning off formatting for ts_ls)
+      --       server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+      --       logger.debug('denols' .. ' => filetypes=' .. vim.inspect(servers.denols))
+      --       require('lspconfig')[server_name].setup(server)
+      --     end,
+      --   },
+      -- }
+
+      -- for name, cfg in pairs(servers) do
+      --   cfg.capabilities = vim.tbl_deep_extend('force', {}, capabilities, cfg.capabilities or {})
+      --   -- logger.debug(name .. ' => cfg=' .. vim.inspect(cfg))
+      --   require('lspconfig')[name].setup(cfg)
+      -- end
     end,
   },
 
@@ -751,7 +827,8 @@ require('lazy').setup({
       },
     },
     opts = {
-      notify_on_error = false,
+      log_level = vim.log.levels.DEBUG,
+      notify_on_error = true,
       format_on_save = function(bufnr)
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
@@ -760,8 +837,11 @@ require('lazy').setup({
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
+          if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
+            return nil
+          end
           return {
-            timeout_ms = 500,
+            timeout_ms = 2500,
             lsp_format = 'fallback',
           }
         end
@@ -769,10 +849,13 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        python = { 'isort', 'black' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        go = { 'goimports' },
+        sql = { 'sql-formatter' },
+        terraform = { 'terraform' },
       },
     },
   },
@@ -795,16 +878,24 @@ require('lazy').setup({
           end
           return 'make install_jsregexp'
         end)(),
+        config = function()
+          local snippets_path = vim.fn.stdpath 'config' .. '/lua/snippets'
+          -- logger.info(snippets_path)
+          require('luasnip.loaders.from_vscode').load {
+            paths = { snippets_path },
+            include = { 'go' },
+          }
+        end,
         dependencies = {
           -- `friendly-snippets` contains a variety of premade snippets.
           --    See the README about individual language/framework/plugin snippets:
           --    https://github.com/rafamadriz/friendly-snippets
-          -- {
-          --   'rafamadriz/friendly-snippets',
-          --   config = function()
-          --     require('luasnip.loaders.from_vscode').lazy_load()
-          --   end,
-          -- },
+          {
+            'rafamadriz/friendly-snippets',
+            config = function()
+              require('luasnip.loaders.from_vscode').lazy_load { include = { 'go', 'html' } }
+            end,
+          },
         },
         opts = {},
       },
@@ -923,6 +1014,11 @@ require('lazy').setup({
       --  You could remove this setup call if you don't like it,
       --  and try some other statusline plugin
       local statusline = require 'mini.statusline'
+      local filename_hl = { bg = '#181825', fg = '#CDD6F5' }
+      local inactive_hl = { bg = '#404063', fg = '#89B4FB' }
+
+      vim.api.nvim_set_hl(0, 'MiniStatuslineFilename', filename_hl)
+      vim.api.nvim_set_hl(0, 'MiniStatuslineInactive', inactive_hl)
       -- set use_icons to true if you have a Nerd Font
       statusline.setup { use_icons = vim.g.have_nerd_font }
 
@@ -944,7 +1040,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'regex' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -976,7 +1072,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
@@ -984,7 +1080,7 @@ require('lazy').setup({
   --    This is the easiest way to modularize your config.
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
   -- Or use telescope!
